@@ -1,0 +1,53 @@
+{
+  "metadata": {
+    "name": "Fashion & Cosmetics Product Catalog",
+    "version": "1.0.0",
+    "created": "2026-05-22",
+    "total": 30,
+    "categories": ["Fashion", "Cosmetics"],
+    "currency": "VND"
+  },
+  "categories": [
+    { "id": "FSH", "name": "Fashion", "parent": null },
+    { "id": "FSH-TOP", "name": "Tops & Shirts", "parent": "FSH" },
+    { "id": "FSH-BTM", "name": "Bottoms", "parent": "FSH" },
+    { "id": "FSH-OUT", "name": "Outerwear", "parent": "FSH" },
+    { "id": "FSH-ACC", "name": "Accessories", "parent": "FSH" },
+    { "id": "COS", "name": "Cosmetics", "parent": null },
+    { "id": "COS-SKN", "name": "Skincare", "parent": "COS" },
+    { "id": "COS-MKP", "name": "Makeup", "parent": "COS" },
+    { "id": "COS-FRG", "name": "Fragrance", "parent": "COS" }
+  ],
+  "products": [
+    { "sku": "FSH-TS-001", "name": "Áo thun cotton basic unisex", "category": "FSH-TOP", "type": "Fashion", "list_price": 199000, "standard_price": 85000, "stock_qty": 120, "uom": "Cái", "barcode": "8938000000101", "description": "Áo thun cotton 100% form rộng, mềm mịn, thấm hút mồ hôi tốt." },
+    { "sku": "FSH-TS-002", "name": "Áo sơ mi linen tay dài nam", "category": "FSH-TOP", "type": "Fashion", "list_price": 459000, "standard_price": 180000, "stock_qty": 60, "uom": "Cái", "barcode": "8938000000102", "description": "Áo sơ mi vải linen thoáng mát, kiểu dáng Hàn Quốc trẻ trung." },
+    { "sku": "FSH-TS-003", "name": "Áo blouse nữ tay phồng", "category": "FSH-TOP", "type": "Fashion", "list_price": 389000, "standard_price": 150000, "stock_qty": 45, "uom": "Cái", "barcode": "8938000000103", "description": "Áo blouse chiffon tay phồng nữ tính, phù hợp đi làm và đi chơi." },
+    { "sku": "FSH-TS-004", "name": "Áo polo nam thể thao", "category": "FSH-TOP", "type": "Fashion", "list_price": 299000, "standard_price": 120000, "stock_qty": 80, "uom": "Cái", "barcode": "8938000000104", "description": "Áo polo cá sấu vải cotton pique, co giãn nhẹ." },
+    { "sku": "FSH-BT-005", "name": "Quần jeans slim-fit nam", "category": "FSH-BTM", "type": "Fashion", "list_price": 599000, "standard_price": 240000, "stock_qty": 70, "uom": "Cái", "barcode": "8938000000105", "description": "Jeans denim cao cấp, dáng slim-fit ôm vừa, co giãn 4 chiều." },
+    { "sku": "FSH-BT-006", "name": "Chân váy chữ A nữ", "category": "FSH-BTM", "type": "Fashion", "list_price": 349000, "standard_price": 140000, "stock_qty": 55, "uom": "Cái", "barcode": "8938000000106", "description": "Chân váy chữ A vải tweed, lưng cao, có khóa kéo sau." },
+    { "sku": "FSH-BT-007", "name": "Quần short kaki nam", "category": "FSH-BTM", "type": "Fashion", "list_price": 279000, "standard_price": 110000, "stock_qty": 90, "uom": "Cái", "barcode": "8938000000107", "description": "Quần short kaki dáng đứng, túi sau cài nút." },
+    { "sku": "FSH-OW-008", "name": "Áo khoác bomber unisex", "category": "FSH-OUT", "type": "Fashion", "list_price": 799000, "standard_price": 320000, "stock_qty": 35, "uom": "Cái", "barcode": "8938000000108", "description": "Bomber vải dù chống nước nhẹ, lót lưới thoáng khí." },
+    { "sku": "FSH-OW-009", "name": "Áo blazer nữ công sở", "category": "FSH-OUT", "type": "Fashion", "list_price": 989000, "standard_price": 400000, "stock_qty": 25, "uom": "Cái", "barcode": "8938000000109", "description": "Blazer nữ vải tuyết mưa, có lót trong, phù hợp công sở." },
+    { "sku": "FSH-OW-010", "name": "Áo hoodie nỉ bông", "category": "FSH-OUT", "type": "Fashion", "list_price": 449000, "standard_price": 180000, "stock_qty": 65, "uom": "Cái", "barcode": "8938000000110", "description": "Hoodie nỉ bông dày, mũ 2 lớp, túi kangaroo." },
+    { "sku": "FSH-AC-011", "name": "Túi xách da nữ cao cấp", "category": "FSH-ACC", "type": "Fashion", "list_price": 1290000, "standard_price": 520000, "stock_qty": 20, "uom": "Cái", "barcode": "8938000000111", "description": "Túi da PU cao cấp, đường may chắc chắn, dây đeo điều chỉnh." },
+    { "sku": "FSH-AC-012", "name": "Thắt lưng da nam", "category": "FSH-ACC", "type": "Fashion", "list_price": 359000, "standard_price": 140000, "stock_qty": 50, "uom": "Cái", "barcode": "8938000000112", "description": "Thắt lưng da bò thật, khóa hợp kim không gỉ." },
+    { "sku": "FSH-AC-013", "name": "Ví da nam mini", "category": "FSH-ACC", "type": "Fashion", "list_price": 459000, "standard_price": 190000, "stock_qty": 40, "uom": "Cái", "barcode": "8938000000113", "description": "Ví da bò ngăn thẻ ATM, ngăn đựng tiền lẻ." },
+    { "sku": "FSH-AC-014", "name": "Mũ lưỡi trai snapback", "category": "FSH-ACC", "type": "Fashion", "list_price": 189000, "standard_price": 70000, "stock_qty": 100, "uom": "Cái", "barcode": "8938000000114", "description": "Mũ snapback vải cotton in logo, vành phẳng cứng cáp." },
+    { "sku": "FSH-AC-015", "name": "Khăn lụa vuông nữ", "category": "FSH-ACC", "type": "Fashion", "list_price": 249000, "standard_price": 95000, "stock_qty": 75, "uom": "Cái", "barcode": "8938000000115", "description": "Khăn lụa polyester họa tiết hoa, 90x90cm." },
+    { "sku": "COS-SK-016", "name": "Sữa rửa mặt cấp ẩm Hyaluronic", "category": "COS-SKN", "type": "Cosmetics", "list_price": 320000, "standard_price": 130000, "stock_qty": 110, "uom": "Chai 150ml", "barcode": "8938000000116", "description": "Sữa rửa mặt chứa HA, làm sạch dịu nhẹ." },
+    { "sku": "COS-SK-017", "name": "Toner cân bằng da Niacinamide", "category": "COS-SKN", "type": "Cosmetics", "list_price": 389000, "standard_price": 160000, "stock_qty": 95, "uom": "Chai 200ml", "barcode": "8938000000117", "description": "Toner Niacinamide 5% se khít lỗ chân lông, làm sáng." },
+    { "sku": "COS-SK-018", "name": "Serum Vitamin C 15%", "category": "COS-SKN", "type": "Cosmetics", "list_price": 690000, "standard_price": 280000, "stock_qty": 70, "uom": "Chai 30ml", "barcode": "8938000000118", "description": "Serum Vitamin C 15% chống oxy hóa, làm sáng đều màu da." },
+    { "sku": "COS-SK-019", "name": "Kem dưỡng ẩm ban đêm Retinol", "category": "COS-SKN", "type": "Cosmetics", "list_price": 859000, "standard_price": 340000, "stock_qty": 55, "uom": "Hũ 50ml", "barcode": "8938000000119", "description": "Kem đêm Retinol 0.5% chống lão hóa, làm mịn nếp nhăn." },
+    { "sku": "COS-SK-020", "name": "Mặt nạ giấy collagen", "category": "COS-SKN", "type": "Cosmetics", "list_price": 25000, "standard_price": 8000, "stock_qty": 500, "uom": "Miếng", "barcode": "8938000000120", "description": "Mặt nạ giấy collagen thủy phân, cấp ẩm tức thì." },
+    { "sku": "COS-SK-021", "name": "Kem chống nắng SPF50+ PA++++", "category": "COS-SKN", "type": "Cosmetics", "list_price": 459000, "standard_price": 180000, "stock_qty": 130, "uom": "Tuýp 50ml", "barcode": "8938000000121", "description": "Kem chống nắng phổ rộng SPF50+, không nhờn dính." },
+    { "sku": "COS-MK-022", "name": "Son lì lâu trôi velvet", "category": "COS-MKP", "type": "Cosmetics", "list_price": 299000, "standard_price": 110000, "stock_qty": 200, "uom": "Thỏi 3.5g", "barcode": "8938000000122", "description": "Son lì lâu trôi 12 giờ, chất kem mượt, không khô môi." },
+    { "sku": "COS-MK-023", "name": "Phấn nước cushion che phủ", "category": "COS-MKP", "type": "Cosmetics", "list_price": 649000, "standard_price": 260000, "stock_qty": 85, "uom": "Hộp 15g", "barcode": "8938000000123", "description": "Cushion finish lụa, che phủ tốt, lâu trôi cả ngày." },
+    { "sku": "COS-MK-024", "name": "Bảng phấn mắt 12 màu", "category": "COS-MKP", "type": "Cosmetics", "list_price": 499000, "standard_price": 200000, "stock_qty": 60, "uom": "Bảng", "barcode": "8938000000124", "description": "Bảng 12 màu trầm và shimmer, dễ phối, bám tốt." },
+    { "sku": "COS-MK-025", "name": "Mascara dày mi không lem", "category": "COS-MKP", "type": "Cosmetics", "list_price": 269000, "standard_price": 100000, "stock_qty": 140, "uom": "Cây 8ml", "barcode": "8938000000125", "description": "Mascara waterproof, đầu cọ silicon cong, làm dày mi." },
+    { "sku": "COS-MK-026", "name": "Phấn má hồng cam đào", "category": "COS-MKP", "type": "Cosmetics", "list_price": 219000, "standard_price": 85000, "stock_qty": 90, "uom": "Hộp 4g", "barcode": "8938000000126", "description": "Má hồng nén tông cam đào, lên màu tự nhiên." },
+    { "sku": "COS-MK-027", "name": "Chì kẻ mày 2 đầu", "category": "COS-MKP", "type": "Cosmetics", "list_price": 159000, "standard_price": 55000, "stock_qty": 180, "uom": "Cây", "barcode": "8938000000127", "description": "Chì kẻ mày 2 đầu, một đầu chì một đầu chải." },
+    { "sku": "COS-FR-028", "name": "Nước hoa nữ floral 50ml", "category": "COS-FRG", "type": "Cosmetics", "list_price": 1290000, "standard_price": 520000, "stock_qty": 30, "uom": "Chai 50ml", "barcode": "8938000000128", "description": "EDP nữ hương hoa nhài và hoa hồng, lưu hương 6-8 giờ." },
+    { "sku": "COS-FR-029", "name": "Nước hoa nam woody 100ml", "category": "COS-FRG", "type": "Cosmetics", "list_price": 1590000, "standard_price": 640000, "stock_qty": 25, "uom": "Chai 100ml", "barcode": "8938000000129", "description": "EDT nam hương gỗ ấm, mạnh mẽ quyến rũ." },
+    { "sku": "COS-FR-030", "name": "Xịt thơm cơ thể hương cam bưởi", "category": "COS-FRG", "type": "Cosmetics", "list_price": 199000, "standard_price": 75000, "stock_qty": 150, "uom": "Chai 150ml", "barcode": "8938000000130", "description": "Body mist hương cam bưởi tươi mát, dùng hàng ngày." }
+  ]
+}

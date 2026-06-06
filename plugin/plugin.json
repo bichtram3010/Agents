@@ -1,0 +1,15 @@
+{
+  "name": "odoo-fashion-cosmetics",
+  "version": "1.0.0",
+  "displayName": "Odoo Fashion & Cosmetics Multi-Agent",
+  "description": "Plugin Claude Code điều phối 4 subagent (Product / Sales / Inventory / Analytics) cho shop thời trang + mỹ phẩm trên Odoo. Bao gồm skills, slash commands và Odoo MCP config.",
+  "author": "TRAM (aidev2@technext.asia)",
+  "license": "MIT",
+  "homepage": "https://github.com/your-org/odoo-fashion-cosmetics",
+  "agents": "./agents",
+  "skills": "./skills",
+  "commands": "./commands",
+  "mcp": "./mcp.json",
+  "categories": ["erp", "multi-agent", "retail"],
+  "tags": ["odoo", "agno", "copilotkit", "fashion", "cosmetics"]
+}
