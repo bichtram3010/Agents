@@ -1,0 +1,3 @@
+name: sample-ci
+on: {push: {branches: [sample/ci-fail]}}
+jobs: {test: {runs-on: ubuntu-latest, steps: [{name: sample-test, run: echo sample test for PM bot F17}, {name: sample-fail, run: exit 1}]}}
