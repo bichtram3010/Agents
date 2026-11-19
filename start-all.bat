@@ -4,8 +4,8 @@ REM   Khoi dong CA backend + frontend trong 2 cua so
 REM ====================================================
 cd /d %~dp0
 
-REM Build RAG index neu chua co
-if not exist backend\data\chroma (
+REM Build RAG index neu chua co (ChromaDB luu du lieu trong chroma.sqlite3)
+if not exist backend\data\chroma\chroma.sqlite3 (
     echo [!] Chua co RAG index. Building...
     call backend\.venv\Scripts\activate.bat 2>nul
     python -m backend.scripts.build_rag_index

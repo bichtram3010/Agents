@@ -15,13 +15,15 @@ from typing import Optional
 
 
 # ── Route definitions ─────────────────────────────────────────────────────────
-# Thứ tự QUAN TRỌNG: specific trước, generic sau
+# Thứ tự QUAN TRỌNG: khớp đầu tiên thắng, nên ý định rõ đặt trước, từ chung đặt sau.
+# Keyword khớp theo NGUYÊN TỪ (\b): "áo" không khớp trong "báo", "top" không khớp
+# trong "croptop". Kiểm bằng tests/test_router.py (các câu test trong README).
 
 ROUTES: list[tuple[str, list[str]]] = [
 
-    # ── Comparison (đặt trên cùng — rất specific) ─────────────────────────────
+    # ── Comparison (rất specific) ─────────────────────────────────────────────
     ("comparison", [
-        "so sánh", "shop nào", "mua ở đâu", "chỗ nào rẻ", "bên nào rẻ",
+        "so sánh", "shop nào", "mua ở đâu", "ở đâu", "chỗ nào rẻ", "bên nào rẻ",
         "phá giá", "bán phá giá", "giá các shop", "giữa các shop",
         "beauty corner", "cosmo hub", "3 shop", "nhiều shop",
         "ship rẻ nhất", "so sánh phí ship", "shop nào oke", "shop nào tốt hơn",
@@ -33,6 +35,29 @@ ROUTES: list[tuple[str, list[str]]] = [
         "hỏa tốc", "miễn ship", "free ship", "thời gian giao",
         "bao lâu tới", "mấy ngày tới", "eta", "vận chuyển",
         "ship ra hà nội", "ship ra bắc", "ship vào nam",
+    ]),
+
+    # ── Analytics (trước Sales: "thống kê đơn hàng" là báo cáo) ──────────────
+    ("analytics", [
+        "doanh thu", "báo cáo", "thống kê", "phân tích", "revenue",
+        "bán chạy", "top", "top sản phẩm", "category nào bán được", "doanh số",
+    ]),
+
+    # ── Sales / Orders ────────────────────────────────────────────────────────
+    ("sales", [
+        "tạo đơn", "đặt hàng", "báo giá", "chốt đơn", "đặt mua",
+        "đơn hàng", "xem đơn", "trạng thái đơn", "xác nhận đơn",
+        "khách hàng", "tìm khách", "thông tin khách",
+        "sale order", "quotation",
+    ]),
+
+    # ── ProductStock: ý định xem danh sách / kho rõ ràng (trước Consultant) ──
+    ("product_stock", [
+        "liệt kê", "danh sách sản phẩm", "danh sách", "list giá",
+        "sku", "mã sản phẩm", "barcode",
+        "tồn kho", "còn hàng", "hết hàng", "còn bao nhiêu",
+        "sắp hết", "cảnh báo kho", "stock", "kho hàng",
+        "tổng quan kho", "giá trị kho",
     ]),
 
     # ── Consultant (RAG) ──────────────────────────────────────────────────────
@@ -47,59 +72,63 @@ ROUTES: list[tuple[str, list[str]]] = [
         # Fashion
         "phối đồ", "outfit", "mặc gì", "mix đồ", "ootd", "diện gì",
         "đi làm mặc", "đi tiệc mặc", "đi biển mặc", "tone màu",
-        # Context/scenario
+        # Context/scenario (bỏ "dưới", "khoảng": quá chung, cướp câu liệt kê)
         "đi quân sự", "sinh viên", "công sở", "đi tiệc", "hẹn hò",
-        "ngân sách", "budget", "tầm giá", "dưới", "khoảng",
+        "ngân sách", "budget", "tầm giá",
         "recommend", "gợi ý", "đề xuất", "chọn giúp",
     ]),
 
-    # ── Sales / Orders ────────────────────────────────────────────────────────
-    ("sales", [
-        "tạo đơn", "đặt hàng", "báo giá", "chốt đơn", "đặt mua",
-        "đơn hàng", "xem đơn", "trạng thái đơn", "xác nhận đơn",
-        "khách hàng", "tìm khách", "thông tin khách",
-        "sale order", "quotation",
-    ]),
-
-    # ── Analytics ─────────────────────────────────────────────────────────────
-    ("analytics", [
-        "doanh thu", "báo cáo", "thống kê", "phân tích", "revenue",
-        "bán chạy", "top sản phẩm", "category nào bán được",
-        "tháng này", "tuần này", "doanh số",
-    ]),
-
-    # ── ProductStock (sản phẩm + kho) ─────────────────────────────────────────
+    # ── ProductStock: từ chung về sản phẩm / giá (cuối cùng) ─────────────────
     ("product_stock", [
-        # Sản phẩm
-        "liệt kê", "danh sách sản phẩm", "có sản phẩm nào",
-        "sản phẩm nào", "tìm sản phẩm", "xem sản phẩm",
-        "giá", "bao nhiêu tiền", "giá bán", "list giá",
-        "sku", "mã sản phẩm", "barcode",
-        "thời trang", "mỹ phẩm", "skincare", "makeup", "fashion",
-        "áo", "quần", "váy", "túi", "son", "kem", "serum", "nước hoa",
-        # Kho
-        "tồn kho", "còn hàng", "hết hàng", "còn bao nhiêu",
-        "sắp hết", "cảnh báo kho", "stock", "kho hàng",
-        "tổng quan kho", "giá trị kho",
+        "có sản phẩm nào", "sản phẩm nào", "tìm sản phẩm", "xem sản phẩm",
+        "giá", "bao nhiêu tiền", "giá bán",
+        "thời trang", "mỹ phẩm", "makeup", "fashion",
+        "áo", "quần", "váy", "túi", "son", "kem", "nước hoa",
     ]),
 ]
 
-_COMPILED: list[tuple[str, re.Pattern]] = [
-    (agent, re.compile("|".join(re.escape(kw) for kw in kws), re.IGNORECASE))
-    for agent, kws in ROUTES
+# Mục cuối là từ chung ("giá", "son"...): thua câu nối tiếp của lượt trước.
+INTENT_ROUTES = ROUTES[:-1]
+GENERIC_ROUTE = ROUTES[-1]
+
+# Dấu hiệu câu nối tiếp: câu nhắc tới thứ vừa nói ở lượt trước.
+FOLLOW_UP_MARKERS = [
+    "cái đó", "cái này", "cái kia", "cái nào", "nó",
+    "sản phẩm đó", "sản phẩm này", "món đó", "món này", "loại đó", "loại này",
+    "loại nào", "mẫu đó", "mẫu này", "còn", "thế còn", "vậy còn", "thì sao",
+    "vừa rồi", "lúc nãy", "ở trên",
 ]
 
 
-def pre_route(query: str) -> Optional[str]:
-    """
-    Trả về tên agent nếu khớp keyword, None nếu không chắc.
+def _compile(keywords: list[str]) -> re.Pattern:
+    words = sorted(keywords, key=len, reverse=True)
+    return re.compile(r"\b(?:" + "|".join(re.escape(k) for k in words) + r")\b", re.IGNORECASE)
 
-    Ưu tiên: đầu tiên khớp = winner (thứ tự ROUTES quan trọng).
-    None → LLM supervisor quyết định.
+
+_COMPILED: list[tuple[str, re.Pattern]] = [(agent, _compile(kws)) for agent, kws in INTENT_ROUTES]
+_GENERIC: tuple[str, re.Pattern] = (GENERIC_ROUTE[0], _compile(GENERIC_ROUTE[1]))
+_FOLLOW_UP = _compile(FOLLOW_UP_MARKERS)
+
+
+def pre_route(query: str, last_agent: Optional[str] = None) -> Optional[str]:
+    """
+    Trả về tên agent nếu chắc, None để LLM supervisor quyết định.
+
+    Thứ tự:
+      1. Keyword ý định rõ (ROUTES trừ mục cuối), khớp đầu tiên thắng.
+      2. Câu nối tiếp ("cái đó", "còn...", "thì sao") và có agent lượt trước
+         → giữ agent đó (giống classifier của agent-squad giữ agent cho follow-up).
+      3. Từ chung về sản phẩm / giá → ProductStock.
+      4. Không khớp gì → None.
     """
     for agent, pattern in _COMPILED:
         if pattern.search(query):
             return agent
+    if last_agent and _FOLLOW_UP.search(query):
+        return last_agent
+    agent, pattern = _GENERIC
+    if pattern.search(query):
+        return agent
     return None
 
 

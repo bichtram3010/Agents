@@ -1,22 +1,28 @@
 """
 FastAPI server exposing CopilotKit-compatible endpoints.
 
-- POST /api/chat : single-turn message → team response (used by CopilotKit runtime)
+- POST /api/chat : câu hỏi từ action `ask_agent` của CopilotKit → pipeline
+                    LLM cache → keyword pre-router → agent (fallback: supervisor),
+                    có session memory theo `session_id`
 - GET  /api/health : healthcheck
 - GET  /api/products : sample REST mirror of Odoo data (debug)
+
+Thao tác ghi quan trọng (xác nhận đơn, xóa cache) cần header X-API-Key = ADMIN_API_KEY.
 """
 from __future__ import annotations
 
 import json
 import os
+import secrets
 import time
 import uuid
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -67,13 +73,24 @@ app.add_middleware(
 )
 
 
+def require_admin(x_api_key: str | None = Header(default=None)) -> None:
+    """Chặn thao tác ghi quan trọng nếu không có đúng header X-API-Key.
+
+    ADMIN_API_KEY chưa đặt → các endpoint admin bị tắt hẳn (403).
+    """
+    expected = os.getenv("ADMIN_API_KEY", "")
+    if not expected:
+        raise HTTPException(403, "Admin endpoints are disabled: set ADMIN_API_KEY")
+    if not x_api_key or not secrets.compare_digest(x_api_key, expected):
+        raise HTTPException(401, "Invalid or missing X-API-Key")
+
+
 @app.get("/api/health")
 def health():
-    woku_key = os.getenv("WOKU_API_KEY", "")
     return {
         "status": "ok",
         "model": os.getenv("LLM_MODEL", "unknown"),
-        "woku_key": woku_key[:12] + "..." if woku_key else "MISSING",
+        "woku_key": "configured" if os.getenv("WOKU_API_KEY") else "MISSING",
     }
 
 
@@ -105,14 +122,14 @@ def chat(req: ChatRequest):
     if not last_user:
         raise HTTPException(400, "No user message")
 
-    team = get_team()
-    # Agno Team.run() accepts a single string; chuyển toàn bộ lịch sử nếu cần
-    history = "\n\n".join(f"{m.role.upper()}: {m.content}" for m in req.messages[-6:])
-    result = team.run(history)
+    # Lịch sử hội thoại lấy từ session memory phía server (theo session_id),
+    # nên client chỉ cần gửi câu mới nhất.
+    run = _run_agent(req.messages, session_id=req.session_id)
     return {
         "role": "assistant",
-        "content": result.content if hasattr(result, "content") else str(result),
-        "agent_used": getattr(result, "agent_name", None),
+        "content": run.content,
+        "agent_used": run.agent_used,
+        "session_id": run.session_id,
     }
 
 
@@ -147,22 +164,33 @@ class OpenAIChatRequest(BaseModel):
     user: str | None = None  # dùng làm session_id
 
 
-def _run_agent(messages: list[OpenAIMessage], session_id: str | None = None) -> str:
+@dataclass
+class AgentRun:
+    content: str
+    agent_used: str | None
+    session_id: str
+
+
+def _run_agent(messages: list[ChatMessage] | list[OpenAIMessage],
+               session_id: str | None = None) -> AgentRun:
     """
-    Pipeline tối ưu — giảm LLM calls tối đa:
+    Pipeline tối ưu — giảm LLM calls tối đa (dùng cho cả /api/chat và /v1/chat/completions):
 
     1. LLM Cache     → 0 LLM calls nếu đã cache
     2. Pre-router    → gọi agent TRỰC TIẾP (bỏ supervisor LLM)
     3. Supervisor    → chỉ fallback khi pre-router không chắc
+
+    Không có session_id → tạo session mới, không dùng chung một session "default"
+    (trước đây mọi client không gửi id đều đọc được lịch sử của nhau).
     """
+    sid = session_id or uuid.uuid4().hex
     clean = [m for m in messages if m.role in ("user", "assistant", "system") and m.content]
     if not clean:
-        return "Xin lỗi, tôi không nhận được nội dung."
+        return AgentRun("Xin lỗi, tôi không nhận được nội dung.", None, sid)
 
     last_user = next((m.content for m in reversed(clean) if m.role == "user"), "")
 
     # ── Session memory ────────────────────────────────────────────────────────
-    sid = session_id or "default"
     session = get_session(sid)
     session.add_user(last_user)
     full_prompt = session.build_prompt(last_user)
@@ -174,10 +202,11 @@ def _run_agent(messages: list[OpenAIMessage], session_id: str | None = None) -> 
         if cached:
             print(f"[cache:HIT] {last_user[:60]}")
             session.add_assistant(cached.response, cached.agent_used)
-            return cached.response
+            return AgentRun(cached.response, cached.agent_used, sid)
 
     # ── Pre-route: direct agent call → bỏ supervisor LLM ─────────────────────
-    agent_name = pre_route(last_user)
+    # last_agent: câu nối tiếp ("cái đó giá bao nhiêu?") ở lại agent của lượt trước.
+    agent_name = pre_route(last_user, last_agent=session.last_agent)
     t0 = time.time()
     tracer = get_tracer()
 
@@ -218,7 +247,7 @@ def _run_agent(messages: list[OpenAIMessage], session_id: str | None = None) -> 
     if should_cache(last_user):
         llm_cache.set(full_prompt, content, agent_used=agent_name, latency_ms=latency_ms)
 
-    return content
+    return AgentRun(content, agent_name, sid)
 
 
 def _openai_chunk(model: str, content_delta: str = "", finish: str | None = None) -> str:
@@ -248,7 +277,7 @@ def openai_chat_completions(req: OpenAIChatRequest):
     if req.stream:
         def event_stream():
             try:
-                content = _run_agent(req.messages, session_id=req.user)
+                content = _run_agent(req.messages, session_id=req.user).content
             except Exception as e:  # pragma: no cover
                 content = f"❌ Lỗi backend: {e}"
 
@@ -262,7 +291,7 @@ def openai_chat_completions(req: OpenAIChatRequest):
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 
     # Non-streaming response
-    content = _run_agent(req.messages, session_id=req.user)
+    content = _run_agent(req.messages, session_id=req.user).content
     return {
         "id": f"chatcmpl-{uuid.uuid4().hex[:24]}",
         "object": "chat.completion",
@@ -277,7 +306,7 @@ def openai_chat_completions(req: OpenAIChatRequest):
     }
 
 
-@app.post("/api/cache/clear")
+@app.post("/api/cache/clear", dependencies=[Depends(require_admin)])
 def cache_clear():
     """Xóa toàn bộ cache (dùng khi cập nhật sản phẩm thủ công)."""
     llm_n = get_llm_cache().clear()
@@ -323,7 +352,8 @@ class CreateOrderRequest(BaseModel):
     items: list[OrderItem]
     customer_email: str = ""
     customer_address: str = ""
-    confirm: bool = False  # True = xác nhận luôn (state=sale), False = giữ ở draft (báo giá)
+    # True = xác nhận luôn (state=sale, cần X-API-Key admin), False = báo giá nháp (draft)
+    confirm: bool = False
 
 
 # ----- Shipping endpoint -----
@@ -349,14 +379,19 @@ def shipping_calc(req: ShippingRequest):
 
 
 @app.post("/api/order/create")
-def order_create(req: CreateOrderRequest):
+def order_create(req: CreateOrderRequest, x_api_key: str | None = Header(default=None)):
     """
     Tạo đơn hàng end-to-end trong Odoo:
     1. Tìm khách theo tên+sđt, nếu chưa có thì tạo mới (res.partner)
     2. Resolve SKU thành product variant
     3. Tạo sale.order với order_line
-    4. (Optional) action_confirm để chuyển sang state=sale
+    4. (Optional, chỉ admin) action_confirm để chuyển sang state=sale
+
+    Không có key admin chỉ tạo được báo giá nháp: khách hàng và chatbot không tự
+    xác nhận đơn được, nhân viên xác nhận trong Odoo.
     """
+    if req.confirm:
+        require_admin(x_api_key)
     try:
         result = create_full_sale_order(
             customer_name=req.customer_name,

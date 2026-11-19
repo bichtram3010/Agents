@@ -85,13 +85,15 @@ def list_sale_orders(state: str | None = None, limit: int = 20) -> list[dict]:
 
 
 def create_quotation(partner_id: int, lines: list[dict]) -> dict:
-    """Tạo báo giá mới. lines = [{product_id, qty, price?}]."""
+    """Tạo báo giá nháp. lines = [{product_id, qty}].
+
+    Giá luôn lấy từ Odoo (bảng giá), không nhận giá từ chat: tool này được gọi
+    từ chatbot khách hàng nên không cho LLM tự đặt price_unit.
+    """
     odoo = get_odoo()
     order_lines = []
     for ln in lines:
         line_vals = {"product_id": ln["product_id"], "product_uom_qty": ln.get("qty", 1)}
-        if "price" in ln:
-            line_vals["price_unit"] = ln["price"]
         order_lines.append((0, 0, line_vals))
     oid = odoo.create("sale.order", {"partner_id": partner_id, "order_line": order_lines})
     return {"id": oid, "ok": True}
@@ -338,7 +340,7 @@ def stock_overview() -> dict:
     odoo = get_odoo()
     products = odoo.search_read(
         "product.template", [],
-        ["qty_available", "standard_price"], limit=1000,
+        ["qty_available", "standard_price"], limit=None,
     )
     total_qty = sum(p["qty_available"] for p in products)
     total_value = sum(p["qty_available"] * p["standard_price"] for p in products)
@@ -375,12 +377,41 @@ def adjust_stock(product_id: int, new_qty: float, location_id: int | None = None
 # ANALYTICS TOOLS - dùng cho Analytics Agent
 # ============================================================
 @odoo_cached
-def sales_summary_by_category(limit: int = 100) -> list[dict]:
-    """Tổng giá trị sản phẩm theo category (list_price * qty_available)."""
+def sales_summary_by_category(state: str = "sale", limit: int = 20) -> list[dict]:
+    """Doanh số theo danh mục từ các đơn đã bán (mặc định state=sale = đã xác nhận).
+
+    Trả về mỗi danh mục: revenue (tổng tiền gồm thuế), qty_sold, order_lines,
+    xếp từ doanh số cao xuống thấp. Odoo tự tổng hợp trên báo cáo sale.report.
+    """
+    odoo = get_odoo()
+    rows = odoo.aggregate(
+        "sale.report", [["state", "=", state]], ["categ_id"],
+        ["price_total:sum", "product_uom_qty:sum", "__count"],
+        order="price_total:sum desc", limit=limit,
+    )
+    return [
+        {
+            "category": r["categ_id"][1] if r.get("categ_id") else "Uncategorized",
+            "revenue": round(r.get("price_total:sum") or 0.0, 2),
+            "qty_sold": r.get("product_uom_qty:sum") or 0.0,
+            "order_lines": r.get("__count") or 0,
+        }
+        for r in rows
+    ]
+
+
+@odoo_cached
+def stock_value_by_category() -> list[dict]:
+    """Giá trị TỒN KHO theo danh mục (không phải doanh số): số mặt hàng, tổng tồn,
+    giá trị theo giá vốn (stock_value) và theo giá bán (retail_value).
+
+    qty_available là field tính toán không lưu DB nên Odoo không group được;
+    đọc toàn bộ sản phẩm (không giới hạn) rồi cộng.
+    """
     odoo = get_odoo()
     products = odoo.search_read(
         "product.template", [],
-        ["categ_id", "list_price", "qty_available", "standard_price"], limit=limit,
+        ["categ_id", "list_price", "qty_available", "standard_price"], limit=None,
     )
     bucket: dict[str, dict] = {}
     for p in products:
@@ -406,11 +437,16 @@ def top_products_by_price(limit: int = 10) -> list[dict]:
 
 @odoo_cached
 def revenue_summary(state: str = "sale") -> dict:
-    """Tổng doanh thu các đơn ở trạng thái cho trước."""
+    """Tổng doanh thu và số đơn ở trạng thái cho trước (mặc định sale = đã xác nhận).
+
+    Odoo tự cộng (SUM/COUNT trong Postgres) trên mọi đơn, không bị giới hạn số đơn.
+    """
     odoo = get_odoo()
-    orders = odoo.search_read("sale.order", [["state", "=", state]], ["amount_total"], limit=1000)
+    (row,) = odoo.aggregate(
+        "sale.order", [["state", "=", state]], [], ["amount_total:sum", "__count"],
+    )
     return {
         "state": state,
-        "order_count": len(orders),
-        "total_revenue": round(sum(o["amount_total"] for o in orders), 2),
+        "order_count": row.get("__count") or 0,
+        "total_revenue": round(row.get("amount_total:sum") or 0.0, 2),
     }

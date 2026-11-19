@@ -89,6 +89,7 @@ _TTL_MAP: dict[str, int] = {
     "low_stock_products": 120,   # 2 phút
     "top_products_by_price": 300,
     "sales_summary_by_category": 120,
+    "stock_value_by_category": 120,
     "revenue_summary": 60,       # 1 phút
     "list_sale_orders": 60,
     "search_customers": 300,
@@ -98,7 +99,7 @@ _TTL_MAP: dict[str, int] = {
 _INVALIDATE_ON: dict[str, list[str]] = {
     "create_product":         ["list_products", "list_categories"],
     "update_product_price":   ["list_products", "get_product", "top_products_by_price"],
-    "adjust_stock":           ["stock_overview", "low_stock_products"],
+    "adjust_stock":           ["stock_overview", "low_stock_products", "stock_value_by_category"],
     "create_quotation":       ["list_sale_orders", "revenue_summary"],
     "confirm_sale_order":     ["list_sale_orders", "revenue_summary", "sales_summary_by_category"],
     "create_or_get_customer": ["search_customers"],

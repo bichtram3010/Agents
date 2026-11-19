@@ -40,6 +40,8 @@ yarn-error.log*
 *.sqlite3
 backend/chroma_db/
 chroma_db/
+# RAG index: build từ backend/data/knowledge + products.json (tự build khi search lần đầu)
+backend/data/chroma/
 
 # ─── Langfuse / Observability ─────────────────────────────────────────────────
 *.trace

@@ -6,6 +6,25 @@ import { useCopilotReadable, useCopilotAction } from "@copilotkit/react-core";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
+// Mỗi tab trình duyệt một session_id: backend nhớ lịch sử + profile (loại da, ngân sách)
+// theo id này, nên ask_agent chỉ cần gửi câu hỏi mới nhất.
+const SESSION_KEY = "odoo-agent-session-id";
+let fallbackSessionId: string | null = null;
+
+function getSessionId(): string {
+  try {
+    const saved = sessionStorage.getItem(SESSION_KEY);
+    if (saved) return saved;
+    const id = crypto.randomUUID();
+    sessionStorage.setItem(SESSION_KEY, id);
+    return id;
+  } catch {
+    // sessionStorage bị chặn (private mode...): giữ id trong bộ nhớ của trang
+    fallbackSessionId ??= crypto.randomUUID();
+    return fallbackSessionId;
+  }
+}
+
 type Product = {
   id: number;
   name: string;
@@ -79,7 +98,10 @@ export default function Home() {
       const res = await fetch(`${BACKEND}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [{ role: "user", content: question }] }),
+        body: JSON.stringify({
+          messages: [{ role: "user", content: question }],
+          session_id: getSessionId(),
+        }),
       });
       const data = await res.json();
       return data.content || "Không có phản hồi.";
@@ -88,14 +110,13 @@ export default function Home() {
 
   useCopilotAction({
     name: "create_order",
-    description: "Tạo đơn hàng trong Odoo. Phải có đủ: tên khách + SĐT + sản phẩm (SKU:qty).",
+    description: "Tạo báo giá nháp trong Odoo (nhân viên sẽ xác nhận đơn). Phải có đủ: tên khách + SĐT + sản phẩm (SKU:qty).",
     parameters: [
       { name: "customer_name", type: "string", description: "Họ tên đầy đủ", required: true },
       { name: "customer_phone", type: "string", description: "SĐT (0901234567)", required: true },
       { name: "items_csv", type: "string", description: "SKU:qty cách phẩy. Vd: FSH-TS-001:2,COS-MK-022:1", required: true },
-      { name: "confirm", type: "boolean", description: "true = xác nhận đơn, false = báo giá nháp", required: false },
     ],
-    handler: async (args: { customer_name: string; customer_phone: string; items_csv: string; confirm?: boolean }) => {
+    handler: async (args: { customer_name: string; customer_phone: string; items_csv: string }) => {
       const placeholders = ["tên khách", "khách hàng", "customer", "test", "demo", "abc", "xyz", "n/a"];
       if (!args.customer_name || placeholders.some(p => args.customer_name.toLowerCase().includes(p))) {
         return "❌ Cần tên thật của khách hàng. Hỏi lại user: 'Tên đầy đủ của khách là gì?'";
@@ -113,11 +134,12 @@ export default function Home() {
       const res = await fetch(`${BACKEND}/api/order/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customer_name: args.customer_name, customer_phone: phone, items, confirm: args.confirm || false }),
+        // Luôn là báo giá nháp: xác nhận đơn cần key admin, không làm từ trình duyệt khách
+        body: JSON.stringify({ customer_name: args.customer_name, customer_phone: phone, items, confirm: false }),
       });
       const data = await res.json();
       if (!res.ok) return `❌ ${data.detail || JSON.stringify(data)}`;
-      return `✅ Đơn ${data.order_name} — ${data.partner.name} — ${(data.amount_total || 0).toLocaleString("vi-VN")} ₫ — ${data.state === "sale" ? "Đã xác nhận" : "Báo giá nháp"}\n${data.url}`;
+      return `✅ Báo giá ${data.order_name} — ${data.partner.name} — ${(data.amount_total || 0).toLocaleString("vi-VN")} ₫ — nhân viên sẽ liên hệ xác nhận đơn.\n${data.url}`;
     },
   });
 
@@ -159,7 +181,7 @@ export default function Home() {
 1. Câu hỏi cần data/phân tích (tư vấn da, sản phẩm, tồn kho, ship, so sánh shop, đơn hàng) → gọi ask_agent(question)
 2. Muốn lọc dashboard → filter_products(keyword)
 3. Muốn xem lại hết → reset_products()
-4. Tạo đơn hàng → hỏi tên + SĐT + sản phẩm trước, rồi create_order()
+4. Đặt hàng → hỏi tên + SĐT + sản phẩm trước, rồi create_order() (tạo báo giá nháp, nhân viên sẽ xác nhận)
 
 Lưu ý tạo đơn: KHÔNG tự đặt tên placeholder. Hỏi thật từ user.
 Trả lời tiếng Việt, ngắn gọn.`}
