@@ -1,0 +1,49 @@
+question,expected,last_agent
+Da mình hay bóng nhờn lỗ chân lông to dùng gì?,consultant,
+Sắp đi quân sự 2 tuần tư vấn kem chống nắng cho sinh viên,consultant,
+Outfit phỏng vấn cho nữ 22 tuổi tone trầm,consultant,
+Da mụn ẩn ngân sách 1 triệu routine buổi sáng,consultant,
+Liệt kê tất cả sản phẩm skincare dưới 500k,product_stock,
+SKU nào tồn kho dưới 30?,product_stock,
+Top 5 sản phẩm giá cao nhất,analytics,
+Tạo báo giá cho khách Nguyễn Văn A SĐT 0901234567 2 áo thun FSH-TS-001,sales,
+Doanh thu các đơn đã xác nhận,analytics,
+Tìm khách hàng tên Trâm,sales,
+Phí ship về Đà Nẵng đơn 300k,shipping,
+Hỏa tốc về Quận 1 HCM giá bao nhiêu?,shipping,
+Mua 600k có miễn ship không?,shipping,
+So sánh giá kem chống nắng COS-SK-021 giữa các shop,comparison,
+Shop nào đang bán phá giá?,comparison,
+Phí ship về Hà Nội từ 3 shop đơn 400k,comparison,
+Mua son lì ở đâu tốt nhất giao về HCM?,comparison,
+Tổng quan thị trường skincare shop nào giá tốt nhất?,comparison,
+Serum vitamin C có dùng chung với retinol được không?,consultant,
+Da nhạy cảm nên chọn toner nào?,consultant,
+Đi biển mặc gì cho đẹp?,consultant,
+Gợi ý quà tặng bạn gái tầm giá 500k,consultant,
+Áo croptop giá bao nhiêu?,product_stock,
+Son môi còn hàng không?,product_stock,
+Danh sách sản phẩm thời trang,product_stock,
+Mã sản phẩm FSH-TS-001 là gì?,product_stock,
+Váy maxi giá bán bao nhiêu?,product_stock,
+Thống kê đơn hàng theo danh mục,analytics,
+Doanh thu tuần này,analytics,
+Báo cáo doanh số tháng 10,analytics,
+Sản phẩm nào bán chạy nhất?,analytics,
+Xem đơn hàng tuần này,sales,
+Chốt đơn 2 hộp kem dưỡng cho chị Lan,sales,
+Trạng thái đơn S00012 thế nào rồi?,sales,
+Giao hàng đến Cần Thơ mấy ngày?,shipping,
+Ship ra Hà Nội bao lâu tới?,shipping,
+Beauty Corner với Cosmo Hub bên nào rẻ hơn?,comparison,
+Xin chào,-,
+Cảm ơn shop nhé,-,
+Cái đó giá bao nhiêu?,consultant,consultant
+Còn loại nào rẻ hơn không?,consultant,consultant
+Thế còn kem chống nắng thì sao?,consultant,consultant
+Vậy còn ship về Huế thì sao?,shipping,consultant
+Cái đó còn hàng không?,product_stock,consultant
+Sản phẩm đó ở shop nào rẻ nhất?,comparison,product_stock
+Còn Cosmo Hub thì sao?,comparison,comparison
+Cái này giá bao nhiêu?,product_stock,shipping
+Ok vậy chốt đơn luôn,sales,consultant

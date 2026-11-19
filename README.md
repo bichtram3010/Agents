@@ -142,10 +142,9 @@ Nhận request → keyword pre-route → hoặc LLM route → subagent phù hợ
 
 | Agent | Trách nhiệm | Tools chính |
 |-------|------------|-------------|
-| **ProductManager** | Xem/tạo/cập nhật sản phẩm, danh mục, giá | `list_products`, `get_product`, `create_product`, `update_product_price` |
-| **SalesOrder** | Báo giá, đơn hàng, tìm khách | `list_sale_orders`, `create_quotation`, `confirm_sale_order`, `search_customers` |
-| **Inventory** | Tồn kho, cảnh báo hết hàng | `low_stock_products`, `stock_overview`, `adjust_stock` |
-| **Analytics** | Doanh thu, báo cáo, top sản phẩm | `revenue_summary`, `sales_summary_by_category`, `top_products_by_price` |
+| **ProductStock** *(chỉ đọc)* | Xem sản phẩm, danh mục, giá, tồn kho, cảnh báo hết hàng | `list_products`, `get_product`, `list_categories`, `low_stock_products`, `stock_overview` |
+| **SalesOrder** | Báo giá nháp, xem đơn hàng, tìm khách | `list_sale_orders`, `create_quotation`, `search_customers` |
+| **Analytics** | Doanh thu, doanh số theo danh mục, giá trị tồn kho, top sản phẩm | `revenue_summary`, `sales_summary_by_category`, `stock_value_by_category`, `top_products_by_price` |
 | **Consultant** | Tư vấn theo loại da, scenario, budget | `knowledge_search` (RAG), `product_search` (RAG), `list_products` |
 | **Shipping** | Phí ship, ETA, hỏa tốc, miễn ship | `calculate_shipping_fee` |
 | **Comparison** | So sánh giá đa shop, phá giá | `compare_product_price`, `detect_price_dumping`, `find_best_shop` |
@@ -155,8 +154,55 @@ Nhận request → keyword pre-route → hoặc LLM route → subagent phù hợ
 **File:** `backend/agents/router.py`
 
 Trước khi gọi LLM supervisor, kiểm tra keyword đơn giản để route nhanh:
-- Nếu khớp → gợi ý agent trực tiếp (tiết kiệm ~1 LLM call/request)
+- Nếu khớp → gọi agent trực tiếp (tiết kiệm ~1 LLM call/request)
 - Nếu không khớp → để LLM supervisor quyết định
+
+Keyword khớp theo nguyên từ ("áo" không khớp trong "báo"). Thứ tự: Comparison → Shipping →
+Analytics → Sales → ProductStock (liệt kê, tồn kho, SKU) → Consultant → **câu nối tiếp** →
+ProductStock (từ chung như "giá", "son", "áo").
+
+**Câu nối tiếp** ("Cái đó giá bao nhiêu?", "Còn loại nào rẻ hơn?", "... thì sao?") không có
+keyword ý định rõ thì ở lại agent của lượt trước (lưu trong session), thay vì bị chữ "giá"
+kéo sang ProductStock. Ý tưởng lấy từ classifier của
+[agent-squad](https://github.com/2FastLabs/agent-squad).
+
+**Độ chính xác** trên [`evals/router_cases.csv`](evals/router_cases.csv) (48 câu: câu test ở mục 12,
+câu thường gặp, 10 câu nối tiếp):
+
+| Router | Đúng |
+|---|---|
+| Bản cũ (khớp chuỗi con, không nhớ agent trước) | 40/48 (83.3%) |
+| Bản hiện tại | 47/48 (97.9%) |
+
+Câu còn sai: "Cái này giá bao nhiêu?" ngay sau khi hỏi phí ship, router giữ Shipping trong khi
+khách hỏi giá sản phẩm. Bộ câu do người viết router soạn nên con số lạc quan; dùng để phát
+hiện hồi quy, không phải benchmark.
+
+```powershell
+python -m backend.scripts.eval_router --min 0.9
+```
+
+### Pipeline của một câu chat
+CopilotKit (Next.js) để Claude chọn action; action `ask_agent` chạy trong trình duyệt và gọi
+`POST /api/chat` kèm `session_id` (một id cho mỗi tab). Backend chạy:
+
+1. **Session memory**: thêm câu hỏi vào lịch sử, cập nhật profile (loại da, ngân sách...).
+2. **LLM cache**: câu hỏi + ngữ cảnh giống hệt lần trước → trả ngay, 0 LLM call.
+3. **Keyword pre-router**: rõ ý định → gọi thẳng agent đó.
+4. **Supervisor**: chỉ khi pre-router không chắc.
+
+### Phân quyền
+Chatbot dành cho khách nên các agent trong Team **không có tool ghi** tồn kho, giá hay
+sản phẩm, và không xác nhận được đơn. Báo giá do chat tạo luôn là nháp và lấy giá từ Odoo.
+Thao tác admin cần header `X-API-Key` khớp `ADMIN_API_KEY`:
+
+| Thao tác | Không có key | Có key admin |
+|---|---|---|
+| `POST /api/order/create` | Chỉ báo giá nháp (`confirm=false`) | Được `confirm=true` |
+| `POST /api/cache/clear` | 401 | OK |
+
+Chưa đặt `ADMIN_API_KEY` thì các thao tác admin bị tắt (403). Nhập kho, sửa giá: dùng
+Warehouse agent (CLI, mục 8) hoặc Odoo.
 
 ---
 
@@ -180,7 +226,9 @@ Top-k chunks (knowledge + product catalog)
 Consultant Agent tổng hợp + trả lời
 ```
 
-**Build index:**
+**Build index:** index không nằm trong Git (`backend/data/chroma/` bị ignore). Nếu collection
+trống, lần search đầu tiên tự build từ `knowledge/*.md` + `products.json` (lần đầu tải model
+embedding ~120MB nên chậm). Build lại thủ công sau khi sửa knowledge base:
 ```bash
 python -m backend.rag.ingest
 ```
@@ -269,7 +317,7 @@ curl http://localhost:8000/api/stats
 
 **Xóa cache:**
 ```bash
-curl -X POST http://localhost:8000/api/cache/clear
+curl -X POST http://localhost:8000/api/cache/clear -H "X-API-Key: $ADMIN_API_KEY"
 ```
 
 ---
@@ -427,6 +475,12 @@ APP_HOST=0.0.0.0
 APP_PORT=8000
 CORS_ORIGIN=http://localhost:3000
 
+# Analytics agent (Groq)
+GROQ_API_KEY=gsk_xxx
+
+# Thao tác admin (X-API-Key). Để trống = tắt endpoint admin
+ADMIN_API_KEY=
+
 # Langfuse (optional)
 LANGFUSE_PUBLIC_KEY=pk-lf-xxx
 LANGFUSE_SECRET_KEY=sk-lf-xxx
@@ -461,7 +515,7 @@ LLM_MODEL=claude-haiku-4-5-20251001
 ### Chat & CopilotKit
 | Method | Endpoint | Mô tả |
 |--------|----------|-------|
-| POST | `/api/chat` | Chat đơn giản (non-streaming) |
+| POST | `/api/chat` | Chat qua pipeline cache → pre-router → agent, nhớ theo `session_id` (non-streaming) |
 | POST | `/v1/chat/completions` | OpenAI-compatible (streaming) |
 | POST | `/api/copilotkit` | CopilotKit runtime |
 
@@ -471,7 +525,7 @@ LLM_MODEL=claude-haiku-4-5-20251001
 | GET | `/api/products` | Danh sách sản phẩm từ Odoo |
 | GET | `/api/health` | Health check + model info |
 | GET | `/api/stats` | Cache stats, session stats |
-| POST | `/api/cache/clear` | Xóa toàn bộ cache |
+| POST | `/api/cache/clear` | Xóa toàn bộ cache *(cần `X-API-Key`)* |
 
 ### RAG
 | Method | Endpoint | Mô tả |
@@ -481,8 +535,17 @@ LLM_MODEL=claude-haiku-4-5-20251001
 ### Orders & Shipping
 | Method | Endpoint | Mô tả |
 |--------|----------|-------|
-| POST | `/api/order/create` | Tạo đơn hàng trong Odoo |
+| POST | `/api/order/create` | Tạo báo giá nháp trong Odoo; `confirm=true` cần `X-API-Key` |
 | POST | `/api/shipping/calculate` | Tính phí ship |
+
+### Chạy test
+
+Test không cần Odoo, LLM hay ChromaDB (agent, team và Odoo được thay bằng bản giả).
+
+```powershell
+pip install -r backend\requirements.txt -r requirements-dev.txt
+python -m pytest
+```
 
 ---
 
