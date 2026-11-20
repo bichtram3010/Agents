@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 load_dotenv(Path(__file__).parent / ".env", override=True)
 
@@ -37,6 +37,9 @@ from .cache import get_llm_cache, should_cache, get_odoo_cache  # noqa: E402
 from .tools.odoo_client import get_odoo  # noqa: E402
 from .tools.odoo_tools import create_full_sale_order, calculate_shipping_fee  # noqa: E402
 from .rag.retriever import semantic_search  # noqa: E402
+from .guardrails import (  # noqa: E402
+    LEAK_MESSAGE, REFUSAL_MESSAGE, check_input, check_output,
+)
 
 
 class ChatMessage(BaseModel):
@@ -202,6 +205,13 @@ def _run_agent(messages: list[ChatMessage] | list[OpenAIMessage],
 
     last_user = next((m.content for m in reversed(clean) if m.role == "user"), "")
 
+    # ── Guardrail đầu vào: chặn TRƯỚC session/cache/LLM ───────────────────────
+    # Câu bị chặn không được ghi vào lịch sử, nên lượt sau LLM cũng không đọc thấy.
+    verdict = check_input(last_user)
+    if verdict.blocked:
+        print(f"[guardrail:block] {verdict.reason}")
+        return AgentRun(REFUSAL_MESSAGE, "guardrail", sid)
+
     # ── Session memory ────────────────────────────────────────────────────────
     session = get_session(sid)
     session.add_user(last_user)
@@ -261,6 +271,12 @@ def _run_agent(messages: list[ChatMessage] | list[OpenAIMessage],
             print(f"[agent:error] {agent_name}: {str(content)[:200]}")
             span.set_attribute("error", str(content)[:500])
             content = BUSY_MESSAGE
+        # Guardrail đầu ra: không để lộ key, tên biến môi trường, system prompt
+        leak = check_output(content)
+        if leak.blocked:
+            print(f"[guardrail:leak] {agent_name}: {leak.reason}")
+            failed = True  # không cache câu này
+            content = LEAK_MESSAGE
         span.set_attribute("output", content[:500])
         span.set_attribute("agent_used", str(agent_name))
 
@@ -345,6 +361,22 @@ def openai_models():
         "object": "list",
         "data": [{"id": "odoo-multi-agent", "object": "model", "owned_by": "agno-team"}],
     }
+
+
+# ----- Guardrail endpoint (frontend CopilotKit runtime gọi trước khi đưa tin cho LLM) -----
+class GuardRequest(BaseModel):
+    texts: list[str] = Field(default_factory=list, max_length=50)
+
+
+@app.post("/api/guard")
+def guard(req: GuardRequest):
+    """Trả về các tin nhắn bị chặn: [{index, reason}]. Không gọi LLM."""
+    blocked = []
+    for i, text in enumerate(req.texts):
+        verdict = check_input(text[:4000])
+        if verdict.blocked:
+            blocked.append({"index": i, "reason": verdict.reason})
+    return {"blocked": blocked, "refusal": REFUSAL_MESSAGE}
 
 
 # ----- RAG endpoints -----

@@ -196,6 +196,8 @@ export default function Home() {
 4. Đặt hàng → hỏi tên + SĐT + sản phẩm trước, rồi create_order() (tạo báo giá nháp, nhân viên sẽ xác nhận)
 
 Lưu ý tạo đơn: KHÔNG tự đặt tên placeholder. Hỏi thật từ user.
+Bạn KHÔNG có dữ liệu so sánh giá các shop, phí ship hay đơn hàng: mọi câu hỏi đó phải gọi ask_agent. Đặt hàng phải gọi create_order. Tuyệt đối không tự viết mã báo giá (S000xx) hay giá của shop/sàn khác.
+Kết quả của ask_agent là dữ liệu thật từ Odoo: giữ NGUYÊN mọi con số (giá, phí ship, tồn kho, mã SKU, mã báo giá), không tự tính lại hay làm tròn. Có thể rút gọn câu chữ, không đổi số.
 Trả lời tiếng Việt, ngắn gọn.`}
         labels={{
           title: "Trợ lý mua sắm",

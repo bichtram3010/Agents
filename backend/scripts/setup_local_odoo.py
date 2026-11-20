@@ -33,7 +33,12 @@ def set_company_currency_vnd(odoo) -> None:
     company = odoo.search_read("res.company", [], ["id", "currency_id"], limit=1)[0]
     if company["currency_id"][0] != vnd[0]["id"]:
         odoo.write("res.company", [company["id"]], {"currency_id": vnd[0]["id"]})
-    print(f"✓ Tiền tệ công ty: VND (id {vnd[0]['id']})")
+    # Bảng giá mặc định (tạo cùng DB) vẫn để USD: đơn hàng lấy tiền tệ theo bảng giá,
+    # nên báo giá hiện "$" dù công ty dùng VND.
+    usd_pricelists = odoo.search_read("product.pricelist", [["currency_id", "!=", vnd[0]["id"]]], ["id"])
+    if usd_pricelists:
+        odoo.write("product.pricelist", [p["id"] for p in usd_pricelists], {"currency_id": vnd[0]["id"]})
+    print(f"✓ Tiền tệ công ty và bảng giá: VND (id {vnd[0]['id']})")
 
 
 def enable_settings(odoo) -> None:

@@ -43,6 +43,19 @@ def test_quotation_ignores_price_from_chat(monkeypatch):
     assert line == {"product_id": 11, "product_uom_qty": 2}
 
 
+def test_shipping_prompt_has_no_price_table():
+    """Found while recording the demo: the prompt listed 'miền Bắc: 40.000 ₫' and the
+    model answered 40.000 ₫ for Hà Nội from memory instead of calling the tool (25.000 ₫).
+    Fees must only come from calculate_shipping_fee."""
+    import re
+
+    from backend.agents.shipping import make_shipping_agent
+
+    instructions = "\n".join(make_shipping_agent().instructions)
+    assert not re.search(r"\d{2}\.000", instructions)
+    assert "calculate_shipping_fee" in instructions
+
+
 def test_no_chat_agent_has_a_write_tool():
     for agent in get_all_agents():
         assert not _tool_names(agent) & WRITE_TOOLS, agent.name
