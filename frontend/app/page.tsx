@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { CopilotPopup } from "@copilotkit/react-ui";
 import { useCopilotReadable, useCopilotAction } from "@copilotkit/react-core";
+import ChatHeader from "@/components/ChatHeader";
+import ToolStatus from "@/components/ToolStatus";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
@@ -94,6 +96,11 @@ export default function Home() {
       "KHÔNG dùng cho filter/reset dashboard — dùng filter_products/reset_products cho việc đó.",
     ].join(" "),
     parameters: [{ name: "question", type: "string", description: "Câu hỏi đầy đủ" }],
+    render: ({ status }) => (
+      <ToolStatus done={status === "complete"}
+                  running="Đang hỏi trợ lý chuyên môn (tra Odoo, kho, kiến thức)…"
+                  finished="Đã có câu trả lời từ trợ lý chuyên môn" />
+    ),
     handler: async ({ question }: { question: string }) => {
       const res = await fetch(`${BACKEND}/api/chat`, {
         method: "POST",
@@ -116,6 +123,11 @@ export default function Home() {
       { name: "customer_phone", type: "string", description: "SĐT (0901234567)", required: true },
       { name: "items_csv", type: "string", description: "SKU:qty cách phẩy. Vd: FSH-TS-001:2,COS-MK-022:1", required: true },
     ],
+    render: ({ status }) => (
+      <ToolStatus done={status === "complete"}
+                  running="Đang tạo báo giá trong Odoo…"
+                  finished="Đã gửi yêu cầu tạo báo giá" />
+    ),
     handler: async (args: { customer_name: string; customer_phone: string; items_csv: string }) => {
       const placeholders = ["tên khách", "khách hàng", "customer", "test", "demo", "abc", "xyz", "n/a"];
       if (!args.customer_name || placeholders.some(p => args.customer_name.toLowerCase().includes(p))) {
@@ -186,10 +198,21 @@ export default function Home() {
 Lưu ý tạo đơn: KHÔNG tự đặt tên placeholder. Hỏi thật từ user.
 Trả lời tiếng Việt, ngắn gọn.`}
         labels={{
-          title: "Trợ lý Odoo",
-          initial: "Xin chào! Mình có thể:\n• Tư vấn skincare / phối đồ\n• Xem sản phẩm, tồn kho\n• So sánh giá 3 shop\n• Tính phí ship, tạo đơn hàng\n\nBạn cần gì?",
-          placeholder: "Nhập câu hỏi...",
+          title: "Trợ lý mua sắm",
+          // Markdown: xuống dòng đơn bị gộp, nên dùng danh sách "- " và dòng trống
+          initial: [
+            "Xin chào! Mình có thể giúp bạn:",
+            "",
+            "- **Tư vấn** skincare, phối đồ theo loại da, dịp, ngân sách",
+            "- **Tra cứu** sản phẩm, giá, tồn kho",
+            "- **So sánh giá** giữa 3 shop",
+            "- **Tính phí ship** và **tạo báo giá**",
+            "",
+            "Chọn một gợi ý phía trên hoặc gõ câu hỏi nhé.",
+          ].join("\n"),
+          placeholder: "Hỏi về sản phẩm, phí ship, đơn hàng…",
         }}
+        Header={ChatHeader}
       />
     </main>
   );

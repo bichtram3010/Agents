@@ -4,3 +4,91 @@
 
 :root { color-scheme: light dark; }
 body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+
+/* ══ CopilotKit — đồng bộ tông hồng của dashboard (giá tiền dùng rose-600) ══ */
+:root {
+  --copilot-kit-primary-color: #e11d48;          /* rose-600: bong bóng user, nút gửi, nút mở chat */
+  --copilot-kit-contrast-color: #ffffff;
+  --copilot-kit-background-color: #ffffff;
+  --copilot-kit-secondary-color: #fff1f2;        /* rose-50 */
+  --copilot-kit-secondary-contrast-color: #1f2937;
+  --copilot-kit-separator-color: #f1e4e7;
+  --copilot-kit-muted-color: #9ca3af;
+  --copilot-kit-input-background-color: #ffffff;
+}
+
+/* Cửa sổ chat: gọn hơn, bo góc, không chiếm hết chiều cao */
+.copilotKitPopup .copilotKitWindow {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid #f3e1e5;
+  box-shadow: 0 18px 50px rgba(225, 29, 72, 0.14), 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+@media (min-width: 640px) {
+  .copilotKitPopup .copilotKitWindow {
+    width: 400px;
+    height: min(640px, calc(100vh - 7rem));
+  }
+}
+.copilotKitPopup .copilotKitButton {
+  background: linear-gradient(135deg, #f43f5e, #ec4899);
+  border: none;
+  box-shadow: 0 8px 20px rgba(225, 29, 72, 0.35);
+}
+
+/* Header tùy chỉnh (components/ChatHeader.tsx) */
+.ck-header { background: linear-gradient(135deg, #f43f5e, #ec4899); color: #fff; }
+.ck-header-bar { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; }
+.ck-header-title { display: flex; align-items: center; gap: 10px; }
+.ck-avatar {
+  width: 36px; height: 36px; border-radius: 999px; display: grid; place-items: center;
+  background: rgba(255, 255, 255, 0.22); font-size: 18px;
+}
+.ck-title { font-weight: 600; font-size: 15px; line-height: 1.2; }
+.ck-subtitle { font-size: 11.5px; opacity: 0.9; margin-top: 2px; }
+.ck-close { padding: 6px; border-radius: 8px; color: #fff; }
+.ck-close:hover { background: rgba(255, 255, 255, 0.2); }
+.ck-suggestions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 14px; }
+.ck-chip {
+  font-size: 12.5px; padding: 6px 11px; border-radius: 999px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.95); color: #be123c; border: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.ck-chip:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12); }
+.ck-chip:disabled { opacity: 0.6; cursor: default; }
+
+/* Tin nhắn: chữ vừa phải, bong bóng bo tròn */
+.copilotKitPopup .copilotKitMessages { padding: 16px 14px 8px; background: #fffafb; }
+.copilotKitPopup .copilotKitMessage { font-size: 14px; line-height: 1.6; }
+.copilotKitPopup .copilotKitUserMessage {
+  font-size: 14px; line-height: 1.55; border-radius: 16px 16px 4px 16px; padding: 9px 14px;
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+}
+.copilotKitPopup .copilotKitAssistantMessage {
+  background: #ffffff; border: 1px solid #f3e4e8; border-radius: 16px 16px 16px 4px;
+  padding: 10px 14px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.copilotKitPopup .copilotKitAssistantMessage ul { padding-left: 1.1rem; list-style: disc; }
+.copilotKitPopup .copilotKitAssistantMessage table {
+  display: block; overflow-x: auto; border-collapse: collapse; font-size: 12.5px; margin: 6px 0;
+}
+.copilotKitPopup .copilotKitAssistantMessage th,
+.copilotKitPopup .copilotKitAssistantMessage td { border: 1px solid #f1e4e7; padding: 4px 8px; text-align: left; }
+.copilotKitPopup .copilotKitAssistantMessage th { background: #fff1f2; }
+
+/* Ô nhập */
+.copilotKitPopup .copilotKitInput { min-height: 56px; border-radius: 14px; border-color: #f1d5db; margin-bottom: 4px; }
+.copilotKitPopup .copilotKitInput:focus-within { border-color: #fb7185; box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.18); }
+.copilotKitPopup .copilotKitInput textarea { font-size: 14px; }
+
+/* Thẻ trạng thái khi action chạy (components/ToolStatus.tsx) */
+.ck-tool {
+  display: inline-flex; align-items: center; gap: 8px; margin: 4px 0; padding: 7px 12px;
+  border-radius: 999px; font-size: 12.5px; background: #fff1f2; color: #be123c; border: 1px solid #fecdd3;
+}
+.ck-tool-done { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+.ck-spinner {
+  width: 12px; height: 12px; border-radius: 999px; border: 2px solid #fecdd3; border-top-color: #e11d48;
+  animation: ck-spin 0.8s linear infinite;
+}
+@keyframes ck-spin { to { transform: rotate(360deg); } }
