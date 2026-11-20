@@ -2,6 +2,30 @@
 
 Hệ thống **multi-agent AI** tích hợp Odoo ERP, hỗ trợ tư vấn bán hàng, quản lý kho, so sánh giá đa shop, phát hiện phá giá — được xây dựng bằng Agno Framework + FastAPI + Next.js + CopilotKit.
 
+## Demo
+
+| Dashboard sản phẩm từ Odoo + trợ lý chat | Đặt hàng qua chat → báo giá nháp thật trong Odoo |
+| --- | --- |
+| ![Dashboard và khung chat](docs/screenshots/02-chat-welcome.png) | ![Đặt hàng qua chat](docs/screenshots/05-order.png) |
+
+| Báo giá S00004 trong Odoo (khớp số trong chat) | Danh sách báo giá trong Odoo |
+| --- | --- |
+| ![Báo giá trong Odoo](docs/screenshots/08-odoo-quotation.png) | ![Danh sách báo giá](docs/screenshots/07-odoo-quotations.png) |
+
+| Prompt injection bị guardrail chặn | Dashboard |
+| --- | --- |
+| ![Guardrail chặn prompt injection](docs/screenshots/06-guardrail.png) | ![Dashboard](docs/screenshots/01-dashboard.png) |
+
+Ảnh chụp bằng [`scripts/demo/record.mjs`](scripts/demo/record.mjs) (Playwright) trên Odoo 19 Community
+chạy local ([`docker-compose.odoo.yml`](docker-compose.odoo.yml)) với model miễn phí
+`baidu/ernie-5.5-flash-preview:free` qua OpenRouter. Báo giá S00004 trong chat và trong Odoo là
+cùng một đơn (299.000 ₫ + thuế 15% = 343.850 ₫). Ảnh guardrail được cắt gọn: lần gửi đầu bị
+OpenRouter trả 429 và được gửi lại.
+
+Model miễn phí này trả lời thiếu ổn định: khi chụp, agent So sánh từng tự nghĩ ra tên shop và giá
+không có trong Odoo, nên ảnh so sánh 3 shop chưa được đưa lên. Prompt của agent đó đã được siết
+lại (chỉ dùng kết quả tool, chỉ 3 shop có thật) nhưng chưa chụp lại được vì hết lượt miễn phí trong ngày.
+
 ---
 
 ## Mục lục

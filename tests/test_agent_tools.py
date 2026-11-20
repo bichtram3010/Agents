@@ -56,6 +56,16 @@ def test_shipping_prompt_has_no_price_table():
     assert "calculate_shipping_fee" in instructions
 
 
+def test_comparison_prompt_names_the_real_shops_only():
+    """Found while taking demo screenshots: the model invented 'Shop Xanh', 'Shop HAPPY'."""
+    from backend.agents.comparison import make_comparison_agent
+
+    instructions = "\n".join(make_comparison_agent().instructions)
+    for shop in ("Shop Trâm", "Beauty Corner", "Cosmo Hub"):
+        assert shop in instructions
+    assert "Không nhắc shop hay sàn nào khác" in instructions
+
+
 def test_no_chat_agent_has_a_write_tool():
     for agent in get_all_agents():
         assert not _tool_names(agent) & WRITE_TOOLS, agent.name

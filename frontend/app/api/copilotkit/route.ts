@@ -67,8 +67,11 @@ class GuardedAdapter implements CopilotServiceAdapter {
     // miễn phí từng tự viết bảng so sánh giá Shopee/Fado và một mã báo giá S00078
     // không tồn tại mà không gọi ask_agent / create_order. Sau khi action trả kết
     // quả, để "auto" cho LLM viết câu trả lời cuối từ kết quả đó.
+    // Tin vừa bị chặn thì KHÔNG ép: LLM chỉ cần từ chối (ép thì nó vẫn gọi ask_agent).
     const last = request.messages[request.messages.length - 1];
-    if (last && last.isTextMessage() && String(last.role) === "user") {
+    const lastIsUser = last && last.isTextMessage() && String(last.role) === "user";
+    const lastBlocked = lastIsUser && (last as unknown as { content: string }).content === BLOCKED_NOTE;
+    if (lastIsUser && !lastBlocked) {
       request.forwardedParameters = { ...(request.forwardedParameters ?? {}), toolChoice: "required" };
     }
     return this.inner.process(request);
