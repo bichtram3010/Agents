@@ -13,16 +13,9 @@ from pathlib import Path
 from typing import Any
 
 from .odoo_client import get_odoo
+from .shipping_zones import resolve_zone
 
 META_FILE = Path(__file__).resolve().parents[1] / "data" / "shops_meta.json"
-
-PROVINCE_ZONE = {
-    "hcm": "noi_thanh_hcm", "ho chi minh": "noi_thanh_hcm", "sài gòn": "noi_thanh_hcm",
-    "ha noi": "noi_thanh_hn", "hà nội": "noi_thanh_hn", "hn": "noi_thanh_hn",
-    "da nang": "mien_trung", "đà nẵng": "mien_trung", "huế": "mien_trung",
-    "hai phong": "mien_bac", "hải phòng": "mien_bac", "thanh hóa": "mien_bac",
-    "can tho": "mien_nam_xa", "cần thơ": "mien_nam_xa", "vũng tàu": "mien_nam_xa",
-}
 
 
 @lru_cache(maxsize=1)
@@ -34,12 +27,8 @@ def _load_shops() -> list[dict]:
     return json.loads(META_FILE.read_text(encoding="utf-8"))
 
 
-def _resolve_zone(address: str) -> str:
-    a = address.lower()
-    for kw, zone in PROVINCE_ZONE.items():
-        if kw in a:
-            return zone
-    return "khac"
+# Cùng bảng tỉnh thành với Shipping agent (trước đây bảng riêng, chỉ 12 mục)
+_resolve_zone = resolve_zone
 
 
 def _calc_ship(shop: dict, zone: str, order_total: float, express: bool = False) -> dict:

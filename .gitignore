@@ -27,6 +27,8 @@ frontend/.env.local
 
 # ─── Node / Frontend ──────────────────────────────────────────────────────────
 frontend/node_modules/
+scripts/demo/node_modules/
+scripts/demo/raw/
 frontend/.next/
 frontend/out/
 frontend/.vercel/

@@ -1,0 +1,13 @@
+{
+  "name": "agents-demo-recorder",
+  "private": true,
+  "type": "module",
+  "description": "Quay video + chụp ảnh demo cho README (Playwright), xuất MP4/GIF bằng ffmpeg-static",
+  "scripts": {
+    "record": "node record.mjs"
+  },
+  "devDependencies": {
+    "ffmpeg-static": "5.2.0",
+    "playwright": "1.56.1"
+  }
+}

@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import Any
 
 from .odoo_client import get_odoo
+from .shipping_zones import resolve_zone
 from ..cache.odoo_cache import odoo_cached
 
 
@@ -158,30 +159,8 @@ SHIPPING_TABLE = {
 
 FREE_SHIP_THRESHOLD = 500_000  # VND, miễn ship cho đơn từ 500k
 
-# Mapping tỉnh thành -> zone (rút gọn)
-_PROVINCE_ZONE = {
-    "hcm": "noi_thanh_hcm", "ho chi minh": "noi_thanh_hcm", "tp hcm": "noi_thanh_hcm",
-    "sai gon": "noi_thanh_hcm", "saigon": "noi_thanh_hcm",
-    "ha noi": "noi_thanh_hn", "hanoi": "noi_thanh_hn", "hn": "noi_thanh_hn",
-    "da nang": "mien_trung", "hue": "mien_trung", "quang nam": "mien_trung",
-    "quang ngai": "mien_trung", "binh dinh": "mien_trung", "khanh hoa": "mien_trung",
-    "nha trang": "mien_trung", "phu yen": "mien_trung",
-    "hai phong": "mien_bac", "quang ninh": "mien_bac", "lao cai": "mien_bac",
-    "thai nguyen": "mien_bac", "bac giang": "mien_bac", "thanh hoa": "mien_bac",
-    "nghe an": "mien_bac", "ha tinh": "mien_bac",
-    "can tho": "mien_nam_xa", "an giang": "mien_nam_xa", "kien giang": "mien_nam_xa",
-    "ca mau": "mien_nam_xa", "soc trang": "mien_nam_xa", "dong thap": "mien_nam_xa",
-    "vung tau": "mien_nam_xa", "ba ria": "mien_nam_xa",
-}
-
-
-def _resolve_zone(address: str) -> str:
-    """Đoán zone vận chuyển từ chuỗi địa chỉ. Mặc định 'khac'."""
-    a = address.lower().strip()
-    for keyword, zone in _PROVINCE_ZONE.items():
-        if keyword in a:
-            return zone
-    return "khac"
+# Tỉnh/thành → zone: bảng dùng chung, hiểu địa chỉ có dấu (backend/tools/shipping_zones.py)
+_resolve_zone = resolve_zone
 
 
 def calculate_shipping_fee(
@@ -325,13 +304,19 @@ def create_full_sale_order(
 # ============================================================
 @odoo_cached
 def low_stock_products(threshold: int = 30, limit: int = 50) -> list[dict]:
-    """Sản phẩm có tồn kho <= threshold."""
+    """Sản phẩm có tồn kho <= threshold, tồn ít nhất trước.
+
+    Odoo 19: qty_available không lưu DB nên lọc được nhưng KHÔNG sắp xếp được
+    (ORDER BY qty_available báo lỗi) → lọc ở Odoo, sắp xếp + cắt limit ở Python.
+    """
     odoo = get_odoo()
-    return odoo.search_read(
+    rows = odoo.search_read(
         "product.template", [["qty_available", "<=", threshold]],
         fields=["id", "name", "default_code", "qty_available", "categ_id"],
-        limit=limit, order="qty_available asc",
+        limit=None,
     )
+    rows.sort(key=lambda r: r["qty_available"])
+    return rows[:limit]
 
 
 @odoo_cached

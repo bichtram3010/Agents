@@ -1,5 +1,6 @@
-import "./globals.css";
+// CSS của CopilotKit nạp TRƯỚC globals.css, để theme trong globals.css ghi đè được
 import "@copilotkit/react-ui/styles.css";
+import "./globals.css";
 import type { Metadata } from "next";
 import { CopilotKit } from "@copilotkit/react-core";
 

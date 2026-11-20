@@ -1,0 +1,41 @@
+# Odoo 19 Community + PostgreSQL để chạy thử repo trên máy (thay Odoo SaaS cũ đã hết hạn).
+#
+#   docker compose -f docker-compose.odoo.yml up -d db
+#   docker compose -f docker-compose.odoo.yml run --rm odoo odoo -d shopmypham \
+#       -i sale_management,stock --stop-after-init        # tạo DB lần đầu (~2-3 phút)
+#   docker compose -f docker-compose.odoo.yml up -d odoo  # http://localhost:8069
+#
+# DB tạo bằng lệnh trên có user admin / mật khẩu admin. Chỉ dùng trên máy local:
+# cổng chỉ mở ở 127.0.0.1. backend/.env: ODOO_URL=http://127.0.0.1:8069, ODOO_DB=shopmypham
+# (không dùng "localhost": trên Windows nó thử IPv6 trước, chậm ~2 giây mỗi lệnh XML-RPC).
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      POSTGRES_DB: postgres
+    volumes:
+      - odoo-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo"]
+      interval: 5s
+      retries: 20
+
+  odoo:
+    image: odoo:19.0
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      HOST: db
+      USER: odoo
+      PASSWORD: odoo
+    ports:
+      - "127.0.0.1:8069:8069"
+    volumes:
+      - odoo-data:/var/lib/odoo
+
+volumes:
+  odoo-db:
+  odoo-data:
