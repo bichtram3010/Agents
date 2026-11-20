@@ -164,6 +164,18 @@ class OpenAIChatRequest(BaseModel):
     user: str | None = None  # dùng làm session_id
 
 
+# Agent có câu trả lời chỉ phụ thuộc kiến thức tĩnh (knowledge base, bảng phí ship)
+CACHEABLE_AGENTS = frozenset({"consultant", "shipping"})
+
+BUSY_MESSAGE = "Xin lỗi, hệ thống AI đang bận. Bạn thử lại sau ít phút nhé."
+
+
+def _run_failed(result) -> bool:
+    """agno RunOutput.status == ERROR (lỗi provider, rate limit...)."""
+    status = getattr(result, "status", None)
+    return str(getattr(status, "value", status) or "").upper() == "ERROR"
+
+
 @dataclass
 class AgentRun:
     content: str
@@ -195,18 +207,23 @@ def _run_agent(messages: list[ChatMessage] | list[OpenAIMessage],
     session.add_user(last_user)
     full_prompt = session.build_prompt(last_user)
 
-    # ── LLM Cache → 0 LLM calls ───────────────────────────────────────────────
-    llm_cache = get_llm_cache()
-    if should_cache(last_user):
-        cached = llm_cache.get(full_prompt)
-        if cached:
-            print(f"[cache:HIT] {last_user[:60]}")
-            session.add_assistant(cached.response, cached.agent_used)
-            return AgentRun(cached.response, cached.agent_used, sid)
-
     # ── Pre-route: direct agent call → bỏ supervisor LLM ─────────────────────
     # last_agent: câu nối tiếp ("cái đó giá bao nhiêu?") ở lại agent của lượt trước.
     agent_name = pre_route(last_user, last_agent=session.last_agent)
+
+    # ── LLM Cache → 0 LLM calls ───────────────────────────────────────────────
+    # Chỉ cache agent trả lời từ kiến thức tĩnh. Sales tạo báo giá, ProductStock/
+    # Analytics/Comparison đọc số liệu sống: cache sẽ trả "đã tạo báo giá S000x"
+    # hay tồn kho cũ cho khách khác. Supervisor (agent chưa biết) cũng không cache.
+    cacheable = agent_name in CACHEABLE_AGENTS and should_cache(last_user)
+    llm_cache = get_llm_cache()
+    if cacheable:
+        cached = llm_cache.get(full_prompt)
+        if cached:
+            print(f"[cache:HIT] {agent_name}")
+            session.add_assistant(cached.response, cached.agent_used)
+            return AgentRun(cached.response, cached.agent_used, sid)
+
     t0 = time.time()
     tracer = get_tracer()
 
@@ -237,6 +254,13 @@ def _run_agent(messages: list[ChatMessage] | list[OpenAIMessage],
             print(f"[supervisor→{agent_name}] {int((time.time()-t0)*1000)}ms")
 
         content = result.content if hasattr(result, "content") else str(result)
+        # agno tự bắt lỗi provider (vd OpenRouter 429) và trả câu lỗi làm content với
+        # status=ERROR: không cache câu đó, không đưa lỗi thô cho khách.
+        failed = _run_failed(result)
+        if failed:
+            print(f"[agent:error] {agent_name}: {str(content)[:200]}")
+            span.set_attribute("error", str(content)[:500])
+            content = BUSY_MESSAGE
         span.set_attribute("output", content[:500])
         span.set_attribute("agent_used", str(agent_name))
 
@@ -244,7 +268,7 @@ def _run_agent(messages: list[ChatMessage] | list[OpenAIMessage],
 
     # ── Update session + cache ────────────────────────────────────────────────
     session.add_assistant(content, agent_name)
-    if should_cache(last_user):
+    if cacheable and not failed and agent_name in CACHEABLE_AGENTS:
         llm_cache.set(full_prompt, content, agent_used=agent_name, latency_ms=latency_ms)
 
     return AgentRun(content, agent_name, sid)

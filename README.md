@@ -295,7 +295,11 @@ price < market_avg * 70%         → 🔥  Cực rẻ (nghi ngờ)
 ### LLM Cache (`backend/cache/llm_cache.py`)
 - **TTL:** 60 phút
 - **Max:** 500 entries
-- **Skip cache:** các query liên quan tạo đơn, tồn kho realtime
+- **Chỉ cache** câu do Consultant và Shipping trả lời (kiến thức tĩnh). Sales (tạo báo giá),
+  ProductStock, Analytics, Comparison (số liệu sống) và Supervisor không bao giờ được cache,
+  để một khách không nhận câu "đã tạo báo giá S000x" hay tồn kho cũ của khách khác.
+- **Lần chạy lỗi** (vd provider trả 429) không được cache; khách thấy "hệ thống AI đang bận".
+- **Skip thêm:** câu chứa từ khóa thời gian thực ("hôm nay", "còn bao nhiêu"...)
 - **Hash:** MD5 của `normalized(query + context)`
 
 ### Odoo Cache (`backend/cache/odoo_cache.py`)
@@ -379,7 +383,21 @@ agent.print_response("Báo cáo tồn kho")
 ### Yêu cầu
 - Python 3.11+
 - Node.js 18+
-- Odoo SaaS account (bật tính năng **Pricelists** trong Settings)
+- Odoo 16+ (SaaS hoặc local). Không có sẵn thì dựng Odoo 19 Community bằng Docker (dưới đây).
+
+### Bước 0 — Odoo local bằng Docker (tùy chọn)
+
+```powershell
+docker compose -f docker-compose.odoo.yml up -d db
+docker compose -f docker-compose.odoo.yml run --rm odoo odoo -d shopmypham -i sale_management,stock --stop-after-init
+docker compose -f docker-compose.odoo.yml up -d odoo        # http://localhost:8069
+```
+
+Trong `backend/.env` đặt `ODOO_URL=http://127.0.0.1:8069`, `ODOO_DB=shopmypham` và tài khoản
+ghi ở đầu `docker-compose.odoo.yml`. Dùng `127.0.0.1`, không dùng `localhost`: trên Windows
+`localhost` thử IPv6 trước nên mỗi lệnh XML-RPC chậm thêm ~2 giây. Sau Bước 1, chạy
+`python -m backend.scripts.setup_local_odoo` (tiền VND, bật Pricelists và Storage Locations)
+trước các script ở Bước 3.
 
 ### Bước 1 — Backend
 
@@ -493,10 +511,15 @@ LANGFUSE_HOST=https://cloud.langfuse.com
 BACKEND_URL=http://localhost:8000
 NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 
-# woku.shop — Anthropic native API (cho CopilotKit AnthropicAdapter)
-WOKU_API_KEY=sk-xxx
-WOKU_BASE_URL=https://llm.wokushop.com
-LLM_MODEL=claude-haiku-4-5-20251001
+# Cách 1: API tương thích OpenAI (OpenRouter, Gemini, Groq...) — có LLM_BASE_URL thì dùng cách này
+LLM_BASE_URL=https://openrouter.ai/api/v1
+LLM_API_KEY=sk-or-xxx
+LLM_MODEL=baidu/ernie-5.5-flash-preview:free   # model phải hỗ trợ tool calling
+
+# Cách 2: woku.shop — Anthropic native API (không đặt LLM_BASE_URL)
+# WOKU_API_KEY=sk-xxx
+# WOKU_BASE_URL=https://llm.wokushop.com
+# LLM_MODEL=claude-haiku-4-5-20251001
 ```
 
 ### Models đang hoạt động trên woku.shop (2026-06)
